@@ -2,7 +2,7 @@
          prepareEvent, selectElementContents,
          selectElementContentsAndFire,
          placeCursorInsideElement,
-         isFirefox */
+         getEdgeVersion, isFirefox */
 
 describe('Content TestCase', function () {
     'use strict';
@@ -649,7 +649,7 @@ describe('Content TestCase', function () {
                 fireEvent(target, 'keydown', {
                     keyCode: MediumEditor.util.keyCode.BACKSPACE
                 });
-                expect(this.el.innerHTML).toBe('<p>lorem ipsum</p><ul><li></li><li>lorem ipsum</li></ul>');
+                expect(this.el.innerHTML).toMatch(/^<p>lorem ipsum<\/p><ul><li>(<br>)?<\/li><li>lorem ipsum<\/li><\/ul>$/);
             });
         });
 
@@ -737,7 +737,7 @@ describe('Content TestCase', function () {
         };
 
         this.el.parentNode.removeChild(this.el);
-        this.el = this.createElement('h1', 'editor', 'M');
+        this.el = this.createElement('h1', 'editor', 'Lorem ipsum dolor sit amet');
 
         var editor = this.newMediumEditor('h1.editor');
         editor.elements[0].focus();
@@ -808,6 +808,77 @@ describe('Content TestCase', function () {
             para = this.el.querySelector('p');
             expect(para.querySelectorAll('br').length).toBe(3, 'Some of the <br> elements have been removed from the <p>');
             expect(para.querySelectorAll('div').length).toBe(0, 'Some <br> elements were replaced with <div> elements within the <p>');
+        });
+    });
+
+    describe('when list element is unlisted', function () {
+        it('should fix markup when one list element is unlisted', function () {
+            this.el.innerHTML = '<ul><li>lorem</li><li>ipsum</li><li>dolor</li></ul>';
+            var editor = this.newMediumEditor('.editor', {
+                    toolbar: {
+                        buttons: ['unorderedlist']
+                    }
+                }),
+                target = editor.elements[0].querySelector('li'),
+                toolbar = editor.getExtensionByName('toolbar');
+
+            selectElementContentsAndFire(target);
+            fireEvent(toolbar.getToolbarElement().querySelector('[data-action="insertunorderedlist"]'), 'click');
+
+            if (getEdgeVersion() > 0) {
+                // Edge wraps elements in div
+                expect(this.el.innerHTML).toBe('<div>lorem</div><ul><li>ipsum</li><li>dolor</li></ul>');
+            } else {
+                // Other browsers should wrap them in p
+                expect(this.el.innerHTML).toBe('<p>lorem</p><ul><li>ipsum</li><li>dolor</li></ul>');
+            }
+        });
+
+        it('should fix markup when miltiple list elements are unlisted', function () {
+            this.el.innerHTML = '<ol><li>lorem</li><li>ipsum</li><li>dolor</li></ol>';
+            var editor = this.newMediumEditor('.editor', {
+                    toolbar: {
+                        buttons: ['orderedlist']
+                    }
+                }),
+                toolbar = editor.getExtensionByName('toolbar'),
+                selection = document.getSelection(),
+                range = document.createRange();
+
+            range.setStart(this.el.querySelectorAll('li')[0].firstChild, 0);
+            range.setEnd(this.el.querySelectorAll('li')[1].firstChild, 5);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            fireEvent(toolbar.getToolbarElement().querySelector('[data-action="insertorderedlist"]'), 'click');
+            if (getEdgeVersion() > 0) {
+                // Edge wraps elements in div
+                expect(this.el.innerHTML).toBe('<div>lorem</div><div>ipsum</div><ol><li>dolor</li></ol>');
+            } else {
+                // Other browsers should wrap them in p
+                expect(this.el.innerHTML).toBe('<p>lorem</p><p>ipsum</p><ol><li>dolor</li></ol>');
+            }
+        });
+
+        it('should fix markup when all list elements are unlisted', function () {
+            this.el.innerHTML = '<ul><li>lorem</li><li>ipsum</li><li>dolor</li></ul>';
+            var editor = this.newMediumEditor('.editor', {
+                    toolbar: {
+                        buttons: ['unorderedlist']
+                    }
+                }),
+                target = editor.elements[0].querySelector('ul'),
+                toolbar = editor.getExtensionByName('toolbar');
+
+            selectElementContentsAndFire(target);
+            fireEvent(toolbar.getToolbarElement().querySelector('[data-action="insertunorderedlist"]'), 'click');
+            if (getEdgeVersion() > 0) {
+                // Edge wraps elements in div
+                expect(this.el.innerHTML).toBe('<div>lorem</div><div>ipsum</div><div>dolor</div>');
+            } else {
+                // Other browsers should wrap them in p
+                expect(this.el.innerHTML).toBe('<p>lorem</p><p>ipsum</p><p>dolor</p>');
+            }
         });
     });
 });
