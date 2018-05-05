@@ -2452,6 +2452,10 @@ MediumEditor.extensions = {};
     'use strict';
 
     function isElementDescendantOfExtension(extensions, element) {
+        if (!extensions) {
+            return false;
+        }
+
         return extensions.some(function (extension) {
             if (typeof extension.getInteractionElements !== 'function') {
                 return false;
@@ -5345,6 +5349,10 @@ MediumEditor.extensions = {};
                 return this.cleanPaste(pastedHTML);
             }
 
+            if (!pastedPlain) {
+                return;
+            }
+
             if (!(this.getEditorOption('disableReturn') || (editable && editable.getAttribute('data-disable-return')))) {
                 paragraphs = pastedPlain.split(/[\r\n]+/g);
                 // If there are no \r\n in data, don't wrap in <p>
@@ -7878,7 +7886,7 @@ MediumEditor.parseVersionString = function (release) {
 
 MediumEditor.version = MediumEditor.parseVersionString.call(this, ({
     // grunt-bump looks for this:
-    'version': '5.23.2'
+    'version': '5.23.3'
 }).version);
 
     return MediumEditor;
